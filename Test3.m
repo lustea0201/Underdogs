@@ -1,13 +1,11 @@
 clear all 
 close all 
 
-left_band = 7; top_band = 70; band1_w = 52; band1_h = 28; width = 300; height = 200;
 
-I = imread("src/index.jpg");
-Image1 = imcrop(I, [left_band,top_band ,width,height]);
-Image1_Monet = imcrop(I, [left_band+band1_w + width,top_band,width,height]);
-Image2 = imcrop(I, [left_band,top_band + band1_h + height,width,height]);
-Image2_Monet = imcrop(I, [left_band+band1_w + width,top_band + band1_h + height,width,height]);
+Image1 = imread("src/photo1.jpg");
+Image1_Monet = imread("src/monet1.jpg");
+Image2 = imread("src/photo2.jpg");
+Image2_Monet = imread("src/monet2.jpg");
 
 
 % figure(), imshow(I), title('I');
@@ -43,9 +41,10 @@ out(:,:,3) = ifft2(outf(:,:,3));
 figure()
 imshow(out/255)
 title('out')
+imwrite(out/255, "out/out.jpg")
 
 
-med = zeros(201,301,3);
+med = zeros(size(out));
 neigh = [5,5];
 med(:,:,1) = medfilt2(out(:,:,1), neigh); 
 med(:,:,2) = medfilt2(out(:,:,2), neigh); 
