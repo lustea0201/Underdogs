@@ -16,16 +16,18 @@ Image2_Monet = imcrop(I, [left_band+band1_w + width,top_band + band1_h + height,
 % figure(), imshow(Image2), title('Image2'); 
 % figure(), imshow(Image2_Monet),title('Image2_Monet'); 
 
-
+% Get the FFT of the images (not centered)
 f1 = fft3(Image1);
 f1_Monet = fft3(Image1_Monet);
 f2_Monet = fft3(Image2_Monet);
 
+% Obtain the filter
 filter = zeros(size(f1));
 filter(:,:,1) = f1_Monet(:,:,1)./f1(:,:,1); 
 filter(:,:,2) = f1_Monet(:,:,2)./f1(:,:,2);
 filter(:,:,3) = f1_Monet(:,:,3)./f1(:,:,3);
 
+% Predict the real image from painting 2
 outf = zeros(size(filter));
 outf(:,:,1) = f2_Monet(:,:,1)./filter(:,:,1);
 outf(:,:,2) = f2_Monet(:,:,2)./filter(:,:,2);
@@ -43,13 +45,13 @@ imshow(out/255)
 title('out')
 
 
-i = zeros(201,301,3);
+med = zeros(201,301,3);
 neigh = [5,5];
-i(:,:,1) = medfilt2(out(:,:,1), neigh); 
-i(:,:,2) = medfilt2(out(:,:,2), neigh); 
-i(:,:,3) = medfilt2(out(:,:,3), neigh); 
+med(:,:,1) = medfilt2(out(:,:,1), neigh); 
+med(:,:,2) = medfilt2(out(:,:,2), neigh); 
+med(:,:,3) = medfilt2(out(:,:,3), neigh); 
 figure()
-imshow(i/255)
+imshow(med/255)
 title('With median filtering')
 
 
