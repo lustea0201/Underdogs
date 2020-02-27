@@ -1,12 +1,10 @@
 clear all 
 close all 
 
-
 Image1 = imread("src/photo1.jpg");
 Image1_Monet = imread("src/monet1.jpg");
 Image2 = imread("src/photo2.jpg");
 Image2_Monet = imread("src/monet2.jpg");
-
 
 % figure(), imshow(I), title('I');
 % figure(), imshow(Image1), title('Image1'); 
@@ -20,48 +18,79 @@ f1_Monet = fft3(Image1_Monet);
 f2_Monet = fft3(Image2_Monet);
 
 % Obtain the filter
-filter = zeros(size(f1));
-filter(:,:,1) = f1_Monet(:,:,1)./f1(:,:,1); 
-filter(:,:,2) = f1_Monet(:,:,2)./f1(:,:,2);
-filter(:,:,3) = f1_Monet(:,:,3)./f1(:,:,3);
+filter = getKernel(f1, f1_Monet);
 
-% Predict the real image from painting 2
-outf = zeros(size(filter));
-outf(:,:,1) = f2_Monet(:,:,1)./filter(:,:,1);
-outf(:,:,2) = f2_Monet(:,:,2)./filter(:,:,2);
-outf(:,:,3) = f2_Monet(:,:,3)./filter(:,:,3);
+% Predict Fourier representation of image 2
+outf = predictFourier(filter, f2_Monet); 
 
-out = zeros(size(filter));
-out(:,:,1) = ifft2(outf(:,:,1));
-out(:,:,2) = ifft2(outf(:,:,2));
-out(:,:,3) = ifft2(outf(:,:,3));
+% Get the spatial domain representation 
+out = getSpatialRep(outf);
 
-
-
+% display prediction
 figure()
 imshow(out/255)
 title('out')
+% save it
 imwrite(out/255, "out/out.jpg")
 
-
-med = zeros(size(out));
-neigh = [5,5];
-med(:,:,1) = medfilt2(out(:,:,1), neigh); 
-med(:,:,2) = medfilt2(out(:,:,2), neigh); 
-med(:,:,3) = medfilt2(out(:,:,3), neigh); 
+% display median-filtered version
+med = getMedianFiltered(out, [5, 5]); 
 figure()
 imshow(med/255)
 title('With median filtering')
 
-
+%display what we wanted to see
 figure()
 imshow(Image2)
 title('expected')
 
-function f = fft3(I)
-    f = zeros(size(I));
-    f(:,:,1) = fft2(I(:,:,1));
-    f(:,:,2) = fft2(I(:,:,2));
-    f(:,:,3) = fft2(I(:,:,3));
+function F = fft3(I)
+% I: RGB image 
+% Returns F, the Fourier representation of each of the 3 channels of I 
+    F = zeros(size(I));
+    F(:,:,1) = fft2(I(:,:,1));
+    F(:,:,2) = fft2(I(:,:,2));
+    F(:,:,3) = fft2(I(:,:,3));
 end
+
+function kernel = getKernel(photo, drawing)
+% kernel, photo & drawing are in the Fourier domain 
+% Returns the Fourier representation of the kernel of the convolution
+% that transforms the photo into a drawing
+    kernel = zeros(size(photo));
+    kernel(:,:,1) = drawing(:,:,1)./photo(:,:,1); 
+    kernel(:,:,2) = drawing(:,:,2)./photo(:,:,2);
+    kernel(:,:,3) = drawing(:,:,3)./photo(:,:,3);
+end
+
+function photo = predictFourier(kernel, drawing)
+% photo, kernel & drawing are in the Fourier domain
+% Returns the Fourier representation of the predicted photo 
+% obtained by deconvolving a drawing with the kernel 
+    photo = zeros(size(kernel));
+    photo(:,:,1) = drawing(:,:,1)./kernel(:,:,1);
+    photo(:,:,2) = drawing(:,:,2)./kernel(:,:,2);
+    photo(:,:,3) = drawing(:,:,3)./kernel(:,:,3);
+end
+
+function I = getSpatialRep(F)
+% F: RGB image in the Fourier domain
+% Returns I, the corresponding image in the spatial domain
+    I = zeros(size(F));
+    I(:,:,1) = ifft2(F(:,:,1));
+    I(:,:,2) = ifft2(F(:,:,2));
+    I(:,:,3) = ifft2(F(:,:,3));
+end
+
+function MFI = getMedianFiltered(I, neighborhood)
+% I: RGB image to be filtered
+% neighborhood: size of the square neighborhood used in the median filter, 
+% a 2-dimensional array
+% Returns MFI, the median-filtered version of I 
+    MFI = zeros(size(I));
+    MFI(:,:,1) = medfilt2(I(:,:,1), neighborhood); 
+    MFI(:,:,2) = medfilt2(I(:,:,2), neighborhood); 
+    MFI(:,:,3) = medfilt2(I(:,:,3), neighborhood); 
+end
+
 
