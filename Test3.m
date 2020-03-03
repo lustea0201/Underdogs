@@ -1,8 +1,9 @@
 clear all 
 close all 
 
-painter = "monet"; % can chose "monet" or "vg"  (Van Gogh)
+painter = "monet";
 
+%Load all the necessary images of paintings and photos
 photo1 = imread("src/photo1.jpg");
 painting1 = imread(strcat("src/", painter, "1.jpg"));
 photo2 = imread("src/photo2.jpg");
@@ -15,9 +16,11 @@ painting4 = imread(strcat("src/", painter, "4.jpg"));
 to_predict = painting2; % This is the painting we want to create a photo from
 expected = photo2; % Expected result
 
-painting5 = imread("src/MONET.jpg");
+painting5 = imread("src/MONET.jpg"); % This is an extra painting from Monet that we are curious about
 
-FOURIER_SIZE = [2048 2048];
+FOURIER_SIZE = [2048 2048]; % All operations in the Fourier domain will be done with this size 
+% Caution: the program only works if all images have both dimension smaller
+% than this
 
 
 % Get the FFT of the images (not centered)
@@ -32,49 +35,57 @@ fpainting4 = fft3(painting4, FOURIER_SIZE);
 fpredict = fft3(to_predict, FOURIER_SIZE);
 fpainting5 = fft3(painting5, FOURIER_SIZE);
 
-
 % Obtain the filters
 filter1 = getKernel(fphoto1, fpainting1, FOURIER_SIZE); 
 filter3 = getKernel(fphoto3, fpainting3, FOURIER_SIZE);
 filter4 = getKernel(fphoto4, fpainting4, FOURIER_SIZE);
+
 % We want to take the average of those 4 filters to get a filter more
 % representative of Monet's painting style
 filteravg = (filter1+ filter3 + filter4)./3; 
 
-
-% Predict Fourier representation of image 4
-fout = predictFourier(filteravg, fpredict); 
+% Predict Fourier representation of the paintings
+fout4 = predictFourier(filteravg, fpredict); 
 fout5 = predictFourier(filteravg, fpainting5); 
 
 % Get the spatial domain representation 
-out = getSpatialRep(fout, size(to_predict));
+out4 = getSpatialRep(fout4, size(to_predict));
 out5 = getSpatialRep(fout5, size(painting5));
 
-% display predictions
-out = getMedianFiltered(out, [6, 6]); 
-figure(1)
-imshow(out/255)
-title('What Monet saw')
-imwrite(out/255, "out/monet_photo2.jpg")
+% Filter the output predictions
+filtered4 = applyGaussianFilter(out4, 1.5); 
+filtered5 = applyGaussianFilter(out5, 1.5); 
+
+% Convert the images to uint8 (integers from 0 to 255)
+out4 = uint8(out4); out5 = uint8(out5); 
+filtered4 = uint8(filtered4); filtered5 = uint8(filtered5); 
+
+% Save the images in the folder named "out" in jpg format 
+imwrite(filtered4, "out/filtered4.jpg")
+imwrite(out4, "out/raw4.jpg")
+imwrite(out5, "out/raw5.jpg")
+
+imwrite(filtered5, "out/filtered5.jpg")
 
 
-out5 = getMedianFiltered(out5, [6, 6]); 
-figure(2)
-imshow(out5/255)
-title('What Monet saw')
-imwrite(out5/255, "out/monet_photo5.jpg")
+% Display a comparison of the original painting, ground truth picture and
+% predicted picture
+figure('position', [200, 400, 1200, 300]) 
+subplot(1,4,1), imshow(to_predict), title("Painting")
+subplot(1,4,2), imshow(out4), title("Predicted photo (raw)")
+subplot(1,4,3), imshow(filtered4), title("Predicted photo (processed)")
+subplot(1,4,4), imshow(expected), title("Expected photo")
 
+figure('position', [400, 0, 1200, 300]), imshow(painting5), title("Painting")
+figure('position', [800, 0, 1200, 300]), imshow(filtered5), title("Predicted photo (processed)")
 
-
-%display what we wanted to see
-figure(3)
-imshow(expected)
-title('expected')
 
 function F = fft3(I, FOURIER_SIZE)
 % I: RGB image 
 % Returns F, the Fourier representation of each of the 3 channels of I 
+% In size given by FOURIER_SIZE
     F = zeros(FOURIER_SIZE);
+    
     F(:,:,1) = fft2(I(:,:,1), FOURIER_SIZE(1), FOURIER_SIZE(2));
     F(:,:,2) = fft2(I(:,:,2), FOURIER_SIZE(1), FOURIER_SIZE(2));
     F(:,:,3) = fft2(I(:,:,3), FOURIER_SIZE(1), FOURIER_SIZE(2));
@@ -103,7 +114,7 @@ end
 function If = getSpatialRep(F, s)
 % F: RGB image in the Fourier domain
 % Returns I, the corresponding image in the spatial domain
-
+% Caution: s must be smaller than FOURIER_SIZE along both dimensions
     height = s(1); width = s(2);
     I = zeros(size(F));
     I(:,:,1) = ifft2(F(:,:,1));
@@ -112,13 +123,13 @@ function If = getSpatialRep(F, s)
     If = I(1:height, 1:width, : );
 end
 
-function MFI = getMedianFiltered(I, neighborhood)
+function GFI = applyGaussianFilter(I, sigma)
 % I: RGB image to be filtered
 % neighborhood: size of the square neighborhood used in the median filter, 
 % a 2-dimensional array
 % Returns MFI, the median-filtered version of I 
-    MFI = zeros(size(I));
-    MFI(:,:,1) = medfilt2(I(:,:,1), neighborhood); 
-    MFI(:,:,2) = medfilt2(I(:,:,2), neighborhood); 
-    MFI(:,:,3) = medfilt2(I(:,:,3), neighborhood); 
+    GFI = zeros(size(I));
+    GFI(:,:,1) = imgaussfilt(I(:,:,1), sigma); 
+    GFI(:,:,2) = imgaussfilt(I(:,:,2), sigma); 
+    GFI(:,:,3) = imgaussfilt(I(:,:,3), sigma); 
 end
