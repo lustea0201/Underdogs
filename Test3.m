@@ -61,10 +61,13 @@ out4 = uint8(out4); out5 = uint8(out5);
 filtered4 = uint8(filtered4); filtered5 = uint8(filtered5); 
 
 % Save the images in the folder named "out" in jpg format 
+if ~exist("out", 'dir') % If the folder "out" doesn't exist
+    mkdir("out") % Create it, so we can add pictures to it
+end
+
 imwrite(filtered4, "out/filtered4.jpg")
 imwrite(out4, "out/raw4.jpg")
 imwrite(out5, "out/raw5.jpg")
-
 imwrite(filtered5, "out/filtered5.jpg")
 
 
