@@ -2,14 +2,19 @@ clear all
 close all 
 
 % Creating an empty 1024x1024 image
-SIZE = [102,102];
+SIZE = [1024,1024];
 N_images = 100;
 if exist('out', 'dir')
     rmdir out s % remove all previous files
 end
-N_particles = [32, 128, 256, 512];
-max_speed = [4, 8, 32];
-SNratio = [20, 5, 2];
+% N_particles = [32, 128, 256, 512];
+% max_speed = [4, 8, 32];
+% SNratio = [20, 5, 2];
+N_particles = [128];
+max_speed = [32];
+SNratio = [20];
+
+
 total = size(N_particles, 2)*size(max_speed, 2)*size(SNratio, 2)*N_images;
 % Number of images to generate & save
 
@@ -127,6 +132,8 @@ I = M;
 for i = 1:k
     I = expandPoints(I);
 end
+I = imnoise(I, 'poisson');
+
 end
 
 function [M2, new] = move(SIZE, positions, speed)
