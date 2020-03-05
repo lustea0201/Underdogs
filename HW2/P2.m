@@ -5,44 +5,47 @@ close all
 SIZE = [1024, 1024];
 N_particles = 32; 
 max_speed = 32; 
-N_images = 100;
+N_images = 10;
+SNratio = 100;
 
 [MAP, current_positions] = initializeMap(SIZE, N_particles);
 I = map2im(MAP, 20); 
-if ~exist("out/images", 'dir')
-    mkdir("out/images")
+
+out_directory = strcat('out/', num2str(N_particles), 'particles/', num2str(max_speed), 'pixels_frame/', num2str(SNratio), '_1SN/');
+images_directory = strcat(out_directory,'/images')
+if ~exist(out_directory, 'dir')
+    mkdir(out_directory)
 end
 
-imwrite(I, "out/images/Image1.jpg")
-mri = uint8(zeros(1024, 1024, 1, N_images));
-mri(:,:,:,1) = I;
+if ~exist(images_directory, 'dir')
+    mkdir(images_directory)
+end
+
+
+
+writerObj = VideoWriter(strcat(out_directory, '/Video.avi'));
+writerObj.FrameRate = 10;
+open(writerObj);
+
+imwrite(I, strcat(images_directory, '/Image1.jpg'));
+[I, map ] = imread(strcat(images_directory, '/Image1.jpg'));
+
+frame = im2frame(I, gray(256))
+writeVideo(writerObj, frame);
+
 for frame = 2:N_images
-    frame
+    disp((100*frame/N_images)+ "% done")
     [MAP, current_positions] = move(SIZE, current_positions, max_speed); 
-    I= map2im(MAP, 20); 
-    mri(:,:,:,frame) = I;
-end
-map = colormap(gray(256));
-mov = immovie(mri, map);
-implay(mov);
-% for i = 2:N_images
-%     [MAP, current_positions] = move(SIZE, current_positions, max_speed); 
-%     I= map2im(MAP, 20); 
-%     imwrite(I, "out/images/Image"+i+".jpg")
-% end
-
-if ~exist("out/videos", 'dir')
-    mkdir("out/videos")
+    I = map2im(MAP, 20); 
+    filename = strcat(images_directory, '/Image', num2str(frame), '.jpg');
+    imwrite(I, filename)
+    [I, map ] = imread(filename);
+    frame = im2frame(I, gray(256));
+    writeVideo(writerObj, frame);
 end
 
-% writerObj = VideoWriter('myVideo.avi');
-% writerObj.FrameRate = 1;
-% open(writerObj);
-% for i = 1:N_images
-%     frame = im2frame(imread("out/images/Image"+i+".jpg"), [0,0,1])
-%     writeVideo(writerObj, imread("out/images/Image"+i+".jpg"));
-% end
-% close(writerObj);
+
+close(writerObj);
 
 
 
